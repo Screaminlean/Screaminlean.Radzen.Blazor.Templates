@@ -2,10 +2,15 @@
 
 A set of dotnet templates for Blazor using the [RadzenBlazor](https://blazor.radzen.com/) package, all documentation for the Radzen components can be found [here](https://blazor.radzen.com/).
 
+- [Installation](#installation)
 - [Blazor ServerSide](#blazor-server--side)
 - [Blazor WebAssembly](#blazor-webassembly)
 - [Contribute](#Contribute)
 - [License](#license)
+
+## Installation
+
+Nuget packasge not uploaded yet! TBA.
 
 ## Blazor Server-Side
 
@@ -17,7 +22,7 @@ The basic template is just a `dotnet new blazorserver` project with [RadzenBlazo
 
 ### Auth Individual
 
-Same as the Basic but with the indevividual auth set `dotnet new blazorserver -o {APP NAME} -au Individual` and the [RadzenBlazor](https://blazor.radzen.com/) package added and setup.
+Same as the Basic but with the individual auth set `dotnet new blazorserver -o {APP NAME} -au Individual` and the [RadzenBlazor](https://blazor.radzen.com/) package added and setup.
 
 ## Blazor WebAssembly
 
