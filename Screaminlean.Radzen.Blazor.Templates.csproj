@@ -3,11 +3,11 @@
   <PropertyGroup>
     <PackageType>Template</PackageType>
     <PackageVersion>1.0</PackageVersion>
-    <PackageId>Screaminlean.Radzen.Blazor.Templates.v1.0</PackageId>
+    <PackageId>Screaminlean.Radzen.Blazor.Templates</PackageId>
     <Title>Radzen Blazor Template Pack</Title>
     <Authors>Screaminlean</Authors>
     <Description>A set of RadzenBlazor templates.</Description>
-    <PackageTags>dotnet-new;templates;web;blazor</PackageTags>
+    <PackageTags>dotnet-new;templates;linux;macos;cloud;web;blazor</PackageTags>
 
     <TargetFramework>net5.0</TargetFramework>
 
