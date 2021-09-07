@@ -8,6 +8,7 @@
     <Authors>Screaminlean</Authors>
     <Description>A set of RadzenBlazor templates.</Description>
     <PackageTags>dotnet-new;templates;linux;macos;cloud;web;blazor</PackageTags>
+    <PackageOutputPath>./nupkg</PackageOutputPath>
 
     <TargetFramework>net5.0</TargetFramework>
 

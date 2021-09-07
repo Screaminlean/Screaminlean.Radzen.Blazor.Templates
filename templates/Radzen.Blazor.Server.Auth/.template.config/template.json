@@ -9,7 +9,7 @@
       "language": "C#",
       "type": "project"
     },
-    "sourceName": "rbsauth",
+    "sourceName": "Radzen.Blazor.Server.Auth",
     "preferNameDirectory":true,
     "sources": [
       {
