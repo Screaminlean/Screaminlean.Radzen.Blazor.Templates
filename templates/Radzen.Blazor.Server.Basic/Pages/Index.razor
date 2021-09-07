@@ -1,0 +1,41 @@
+@page "/"
+@inject DialogService DialogService
+
+<h1>Hello, world!</h1>
+
+Welcome to your new app with Radzen included.
+
+The Radzen documentation can be found here <a href="https://blazor.radzen.com/">here</a>
+<br />
+
+<RadzenButton Text="@ButtonText" Click=@(args => DialogService.Confirm("Are you sure?", "MyTitle", new ConfirmOptions() { OkButtonText = "Yes", CancelButtonText = "No" })) />
+
+<SurveyPrompt Title="How is Blazor working for you?" />
+
+@code {
+    string ButtonText = "Click me!";
+
+    protected override void OnInitialized()
+    {
+        DialogService.OnOpen += Open;
+        DialogService.OnClose += Close;
+    }
+
+    public void Open(string title, Type type, Dictionary<string, object> parameters, DialogOptions options)
+    {
+        
+    }
+
+    public void Close(dynamic result)
+    {
+
+    }
+
+    public void Dispose()
+    {
+        // The DialogService is a singleton so it is advisable to unsubscribe.
+        DialogService.OnOpen -= Open;
+        DialogService.OnClose -= Close;
+    }
+    
+}
