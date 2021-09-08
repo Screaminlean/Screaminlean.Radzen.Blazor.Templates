@@ -1,0 +1,53 @@
+@page "/userpopup/{UserId}"
+
+@using Microsoft.EntityFrameworkCore;
+@using Microsoft.AspNetCore.Identity;
+@using Radzen.Blazor.Server.IdMan.Data;
+
+@inject Radzen.DialogService dialogService;
+@inject Radzen.Blazor.Server.IdMan.Data.Services.IdentityManagerService IdentityManager;
+@inject ApplicationDbContext DbContext;
+
+@if (User == null || Roles == null)
+{
+    <h1>Loading ....</h1>
+}
+else {
+    <RadzenCard Style="width:600px; margin-bottom: 20px; height:500px;">
+        <RadzenTabs>
+            <Tabs>
+                <RadzenTabsItem Text="User">
+                    <h1>User = @User</h1>
+                </RadzenTabsItem>
+                <RadzenTabsItem Text="Roles">
+                    @if (Roles == null || Roles.Count < 1) {
+                        <p>No roles in the database.</p>
+                    }
+                    else {
+                        @foreach (var role in Roles)
+                        {
+                            <h3>@role</h3>
+                        }
+                    }
+                </RadzenTabsItem>
+                <RadzenTabsItem Text="Claims">
+                    <p>Claims will go here</p>
+                </RadzenTabsItem>
+            </Tabs>
+        </RadzenTabs>
+    </RadzenCard> 
+}
+
+@code {
+    [Parameter] public String UserId { get; set; }
+
+    private IdentityUser User; 
+    private IList<IdentityRole> Roles;
+
+    protected override async Task OnInitializedAsync()
+    {
+        User = await IdentityManager.GetUserById(UserId);
+        Roles = await IdentityManager.GetAllRolesAsync();
+    }
+
+}

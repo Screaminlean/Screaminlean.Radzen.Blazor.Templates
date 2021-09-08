@@ -1,0 +1,71 @@
+@page "/identitymanager"
+@* @attribute [Authorize(Roles = "Super User")]
+
+@using Microsoft.AspNetCore.Authorization; *@
+@using Microsoft.EntityFrameworkCore;
+@using Microsoft.AspNetCore.Identity;
+@using Microsoft.AspNetCore.Components.Authorization;
+@using Radzen.Blazor.Server.IdMan.Data;
+
+@inject Radzen.Blazor.Server.IdMan.Data.Services.IdentityManagerService IdentityManager;
+@inject ApplicationDbContext DbContext;
+@inject DialogService dialogService;
+
+<h1>Identity Manager</h1>
+
+@if (Users == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <div class="row">
+        <div class="col-2">
+            <RadzenButton Disabled=@(SelectedUser == null) Click=@OpenOrder Text="Edit" ButtonStyle="ButtonStyle.Secondary" class="mr-2 mb-2" />
+        </div>
+        <div class="col-2">
+            <RadzenButton Click=@OpenOrder Text="Delete" ButtonStyle="ButtonStyle.Danger" class="mr-2 mb-2" />
+        </div>
+        <div class="col-2"></div>
+        <div class="col"></div>
+        <div class="col"></div>
+        <div class="col"></div>
+    </div>
+
+    <div class="row">
+        <RadzenDataGrid AllowFiltering="true" AllowColumnResize="true" FilterMode="FilterMode.Advanced" PageSize="10" AllowPaging="true" AllowSorting="true" 
+        Data="@Users" TItem="IdentityUser" ColumnWidth="300px" LogicalFilterOperator="LogicalFilterOperator.Or" IsLoading="@IsLoading"
+        SelectionMode="DataGridSelectionMode.Single" @bind-Value=@SelectedUser>
+            <Columns>
+                <RadzenDataGridColumn TItem="IdentityUser" Property="Id" Filterable="false" Title="Id" Frozen="true" TextAlign="TextAlign.Center" />
+                <RadzenDataGridColumn TItem="IdentityUser" Property="UserName" Title="User Name" />
+                <RadzenDataGridColumn TItem="IdentityUser" Property="Email" Title="Email"/>
+            </Columns>
+        </RadzenDataGrid>
+    </div>
+    
+}
+
+@code {
+    private bool IsLoading = true;
+    private IEnumerable<IdentityUser> Users;
+    private IList<IdentityUser> SelectedUser;
+
+    protected override  async Task OnInitializedAsync()
+    {
+        //await IdentityManager.CreateRoleAsync("Test Role 1");
+        //await IdentityManager.CreateRoleAsync("Test Role 2");
+        Users =  await Task.Run(()=>DbContext.Users);
+        IsLoading = false;
+    }
+
+    public async Task OpenOrder()
+    {
+        if (SelectedUser == null) {
+            return;
+        }
+        await dialogService.OpenAsync<UserPopup>($"Edit User: {SelectedUser[0].UserName}",
+               new Dictionary<string, object>() { { "UserId", SelectedUser[0].Id } },
+               new DialogOptions() { Width = "700px", Height = "530px" });
+    }
+}
