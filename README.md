@@ -11,6 +11,7 @@ A set of dotnet templates for Blazor using the [RadzenBlazor](https://blazor.rad
   - [Blazor Server Side](#blazor-server-side)
     - [Basic](#basic)
     - [Auth](#auth)
+    - [IdMan](#idman)
   - [Blazor WebAssembly](#blazor-webassembly)
   - [Issues](#issues)
   - [Contribute](#contribute)
@@ -66,6 +67,20 @@ Run `dotnet new rbsauth -o YourProjectName`
 or
 Run `dotnet new Screaminlean.Radzen.Blazor.Server.Auth -o YourProjectName`
 Then run `dotnet restore` see issues below.
+
+The template is setup using the default Sqlite database and you will need to do the initial migration and update.
+
+### IdMan
+
+Same as the Auth but with the a Idenity Manager User Interface.
+
+**Create a New IdMan Project**
+Run `dotnet new rbsidman -o YourProjectName`
+or
+Run `dotnet new Screaminlean.Radzen.Blazor.Server.IdMan -o YourProjectName`
+Then run `dotnet restore` see issues below.
+
+The template is setup using the default Sqlite database and you will need to do the initial migration and update.
 
 ## Blazor WebAssembly
 
