@@ -4,13 +4,17 @@
 
 A set of dotnet templates for Blazor using the [RadzenBlazor](https://blazor.radzen.com/) package, all documentation for the Radzen components can be found [here](https://blazor.radzen.com/).
 
-- [Build](#build)
-- [Installation](#install-the-template-pack)
-- [Blazor ServerSide](#blazor-server-side)
-- [Blazor WebAssembly](#blazor-webassembly)
-- [Contribute](#Contribute)
-- [Issues](#issues)
-- [License](#license)
+- [Screaminlean.Radzen.Blazor.Templates](#screaminleanradzenblazortemplates)
+  - [Build](#build)
+  - [Install The Template Pack](#install-the-template-pack)
+  - [Uninstall the template pack](#uninstall-the-template-pack)
+  - [Blazor Server Side](#blazor-server-side)
+    - [Basic](#basic)
+    - [Auth](#auth)
+  - [Blazor WebAssembly](#blazor-webassembly)
+  - [Issues](#issues)
+  - [Contribute](#contribute)
+  - [License](#license)
 
 ## Build
 
@@ -19,7 +23,7 @@ A set of dotnet templates for Blazor using the [RadzenBlazor](https://blazor.rad
 - Download the repo.
 - In your terminal change inthe the templatepack directory.
 - Execute `dotnet pack`.
-- You should see **Successfully created package 'C:\working\bin\Debug\Screaminlean.Radzen.Blazor.Templates.{version}.nupkg'**.
+- You should see **Successfully created package 'C:\templatepack\nupkg\Screaminlean.Radzen.Blazor.Templates.{version}.nupkg'**.
 
 ## Install The Template Pack
 
