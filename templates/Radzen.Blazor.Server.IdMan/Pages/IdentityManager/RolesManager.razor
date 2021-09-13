@@ -1,0 +1,164 @@
+@page "/identitymanager/rolesmanager"
+
+@using Microsoft.EntityFrameworkCore;
+@using Microsoft.AspNetCore.Identity;
+@using Microsoft.AspNetCore.Components.Authorization;
+@using Radzen.Blazor.Server.IdMan.Data;
+
+@inject NotificationService NotificationService;
+@inject TooltipService tooltipService;
+@inject Radzen.Blazor.Server.IdMan.Data.Services.IdentityManagerService IdentityManager;
+@inject ApplicationDbContext DbContext;
+@inject DialogService dialogService;
+
+@implements IDisposable
+
+<h1>Roles List</h1> 
+
+@if (Roles == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <div class="row">
+        <RadzenButton ButtonStyle="ButtonStyle.Primary" class="mb-2" Text="Add New Role" Click=@CreateNewRole/>
+    </div>
+
+    <div class="row">
+        <RadzenDataGrid AllowFiltering="true" AllowColumnResize="true" FilterMode="FilterMode.Advanced" PageSize="10" AllowPaging="true" AllowSorting="true" 
+        Data="@Roles" TItem="IdentityRole" Count="@RoleCount"  LogicalFilterOperator="LogicalFilterOperator.Or" IsLoading="@IsLoading"
+        SelectionMode="DataGridSelectionMode.Single" @bind-Value=@SelectedRole>
+            <Columns>
+                <RadzenDataGridColumn TItem="IdentityRole" Property="Id" Filterable="false" Title="Id" Frozen="true" TextAlign="TextAlign.Center" />
+                <RadzenDataGridColumn TItem="IdentityRole" Property="Name" Title="Name" />
+                <RadzenDataGridColumn TItem="IdentityRole" Property="Id" Title="" Width="50px">
+                    <Template Context="data">
+                        <RadzenButton ButtonStyle="ButtonStyle.Danger" Icon="delete" Click=@(() => DeleteRole(data.Id)) />
+                    </Template>
+                </RadzenDataGridColumn>
+            </Columns>
+        </RadzenDataGrid>
+    </div>
+
+}
+
+@code {
+    [Parameter] public DialogService ds { get; set; }
+    private bool IsLoading = true;
+    private int NotificationTime = 2000;
+    private IList<IdentityRole> Roles;
+    private IList<IdentityRole> SelectedRole;
+    private int RoleCount = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        dialogService.OnOpen += Open;
+        dialogService.OnClose += Close;
+
+        await GetRolesAsync();
+    }
+
+    private async Task GetRolesAsync()
+    {
+        Roles = await IdentityManager.GetAllRolesAsync();
+        RoleCount = await Task.Run(()=> Roles.Count());
+        IsLoading = false;
+        await InvokeAsync(() => StateHasChanged());
+    }
+
+    private async Task CreateNewRole()
+    {
+
+        NotificationMessage message;
+        ReturnResult NewRole = await dialogService.OpenAsync<NewRolePopup>("Create New Role",
+                new Dictionary<string, object>() {{"ds", dialogService}},
+                new DialogOptions() { Width = "400px", Height = "300px" });
+        if (null == NewRole || NewRole.Cancelled)
+        {
+            return;
+        }
+        if (NewRole.Success)
+            {
+                message = new NotificationMessage { 
+                    Style = "position: absolute; left: -1000px;", 
+                    Severity = NotificationSeverity.Success, 
+                    Summary = "Success", 
+                    Detail = $"The new role was created.", 
+                    Duration = NotificationTime };
+                    ShowNotification(message);
+                    await GetRolesAsync();
+            }
+            else if(!NewRole.Success)
+            {
+                message = new NotificationMessage { 
+                    Style = "position: absolute; left: -1000px;", 
+                    Severity = NotificationSeverity.Error, 
+                    Summary = "Failed", 
+                    Detail = $"Unable to create new user!", 
+                    Duration = NotificationTime };
+                    ShowNotification(message);
+            }
+    }
+
+    private async Task DeleteRole(string id)
+    {
+        /*
+         * DELETE A ROLE !!!!
+         * Should not do this really but needless to say that it:
+         * - Deletes role that is assigned to user -> AspNetUserRoles
+         * - Deletes the role's claims -> AspNetRoleClaims
+         * - Deletes the role itself -> AspNetRoles
+         * - Change to private in Identity?ManagerService.cs to prevent mishaps!
+         */
+        var RoleDeleted = await IdentityManager.DeleteRoleAsync(id);
+
+        NotificationMessage message;
+
+        if (RoleDeleted)
+            {
+                message = new NotificationMessage { 
+                    Style = "position: absolute; left: -1000px;", 
+                    Severity = NotificationSeverity.Success, 
+                    Summary = "Success", 
+                    Detail = $"The role {id} was deleted.", 
+                    Duration = NotificationTime };
+                    ShowNotification(message);
+                    await GetRolesAsync();
+            }
+            else if(!RoleDeleted)
+            {
+                message = new NotificationMessage { 
+                    Style = "position: absolute; left: -1000px;", 
+                    Severity = NotificationSeverity.Error, 
+                    Summary = "Failed", 
+                    Detail = $"Unable to delete role {id}!", 
+                    Duration = NotificationTime };
+                    ShowNotification(message);
+            }
+
+    }
+
+    public void ShowNotification(NotificationMessage message)
+    {
+        NotificationService.Notify(message);
+    }
+
+    private void Open(string title, Type type, Dictionary<string, object> parameters, DialogOptions options)
+    {
+        
+    }
+
+    private void Close(dynamic result)
+    {
+        
+    }
+
+    public void Dispose()
+    {
+        // The DialogService is a singleton so it is advisable to unsubscribe.
+        dialogService.OnOpen -= Open;
+        dialogService.OnClose -= Close;
+    }
+
+}

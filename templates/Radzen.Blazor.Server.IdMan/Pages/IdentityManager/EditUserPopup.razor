@@ -1,0 +1,155 @@
+@page "/identitymanager/edituserpopup/{UserId}"
+
+@using Microsoft.EntityFrameworkCore;
+@using Microsoft.AspNetCore.Identity;
+@using Radzen.Blazor.Server.IdMan.Data;
+@using System.Linq;
+
+@inject Radzen.DialogService dialogService;
+@inject Radzen.Blazor.Server.IdMan.Data.Services.IdentityManagerService IdentityManager;
+@inject ApplicationDbContext DbContext;
+
+@if (User == null || Roles == null)
+{
+    <h1>Loading ....</h1>
+}
+else {
+    <RadzenCard Style="width:600px; margin-bottom: 20px; height:500px;">
+        <RadzenTabs>
+            <Tabs>
+                <RadzenTabsItem Text="User">
+                    <h1>User = @User</h1>
+                </RadzenTabsItem>
+                <RadzenTabsItem Text="Roles">
+                    <div class="row">
+                        @if (Roles == null || Roles.Count < 1) {
+                            <p>No roles in the database.</p>
+                        }
+                        else {
+                            <RadzenCheckBoxList TValue="int" @bind-value=@values Orientation="Orientation.Vertical" Change=@(args => OnChange(args))
+                            Data="@RoleList" TextProperty="Name" ValueProperty="Id" />
+                        }
+                    </div>
+                </RadzenTabsItem>
+                <RadzenTabsItem Text="Claims">
+                    <p>Claims will go here</p>
+                </RadzenTabsItem>
+            </Tabs>
+        </RadzenTabs>
+        <div class="row">
+            <RadzenButton ButtonStyle="ButtonStyle.Primary" Click=@UpdateUser Text="Save"/>
+            <RadzenButton ButtonStyle="ButtonStyle.Danger" Click=@Cancel Text="Cancel"/>
+        </div>
+    </RadzenCard> 
+}
+
+@code {
+    [Parameter] public String UserId { get; set; }
+    [Parameter] public DialogService ds { get; set; }
+
+    private ReturnResult result;
+    private IdentityUser User; 
+    private IList<IdentityRole> Roles;
+    
+    public class RoleCheck
+    {
+        public int Id { get; set; }
+        public string Name { get; set;}
+        public bool IsInRole { get; set; }
+    }
+    
+    private List<RoleCheck> RoleList { get; set; }
+    private IEnumerable<int> values;
+
+    protected override async Task OnInitializedAsync()
+    {
+        result = new ReturnResult {Cancelled=false};
+
+        User = await IdentityManager.GetUserByIdAsync(UserId);
+        Roles = await IdentityManager.GetAllRolesAsync();
+        RoleList = await RoleAssociationAsync();
+        await Task.Run(()=> SetValues());
+    }
+
+    private void SetValues()
+    {   
+        values = ( from R in RoleList where R.IsInRole == true select R.Id ).ToList();
+    }
+
+    public async Task OnChange(object args)
+    {
+        values = (List<int>)args;
+        await UpdateRoleAccosiationAsync();
+    }
+
+    private async Task UpdateRoleAccosiationAsync()
+    {
+        foreach(RoleCheck R in RoleList)
+        {
+            R.IsInRole = values.Contains(R.Id) ? true : false;
+        }
+
+        await InvokeAsync(() => StateHasChanged());
+    }
+
+    public async Task<List<RoleCheck>> RoleAssociationAsync()
+    {
+        RoleList = new();
+        int IdVal = 0;
+        foreach (IdentityRole Role in Roles)
+        {
+            RoleCheck c = new RoleCheck();
+            c.Id = IdVal;
+            c.Name = Role.Name;
+            c.IsInRole = await IdentityManager.IsUserInRole(User.Id, Role.Name);
+            RoleList.Add(c);
+            IdVal ++;
+        }
+
+        return RoleList;
+    }
+
+    public async Task<bool> IsUserInRole(string id, string role)
+    {
+        return await IdentityManager.IsUserInRole(id, role);
+    }
+
+    public async Task UpdateUser()
+    {
+        // Update user
+        bool UpdatedLock = true; //await IdentityManager.UpdateUserLockAsync(User.Id, false);
+        bool UpdatePassword = true; //await IdentityManager.UpdateUserPassword(User.Id, "");
+        bool AddedRole = false;
+        bool RemovedRole = false;
+
+        if (null == RoleList || RoleList.Count < 1 ){
+            AddedRole = true;
+            RemovedRole = true;
+        }
+
+        // Update roles
+        foreach(RoleCheck R in RoleList)
+        {
+            if (R.IsInRole)
+            {
+                AddedRole = await IdentityManager.AddUserToRoleAsync(User.UserName, R.Name);
+            }
+            else
+            {
+                RemovedRole = await IdentityManager.RemoveUserFromRole(User.Id, R.Name);
+            }
+        }
+
+        result.Success = UpdatedLock && UpdatePassword && AddedRole && RemovedRole;
+        ds.Close(result);
+    }
+
+    public void Cancel()
+    {
+        result.Cancelled = true;
+        result.Success = false;
+        ds.Close(result);
+    }
+
+
+}

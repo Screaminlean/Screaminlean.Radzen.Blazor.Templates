@@ -7,11 +7,15 @@
 @using Microsoft.AspNetCore.Components.Authorization;
 @using Radzen.Blazor.Server.IdMan.Data;
 
+@inject NotificationService NotificationService;
+@inject TooltipService tooltipService;
 @inject Radzen.Blazor.Server.IdMan.Data.Services.IdentityManagerService IdentityManager;
 @inject ApplicationDbContext DbContext;
 @inject DialogService dialogService;
 
-<h1>Identity Manager</h1>
+@implements IDisposable
+
+<h1>User List</h1> 
 
 @if (Users == null)
 {
@@ -20,52 +24,197 @@
 else
 {
     <div class="row">
-        <div class="col-2">
-            <RadzenButton Disabled=@(SelectedUser == null) Click=@OpenOrder Text="Edit" ButtonStyle="ButtonStyle.Secondary" class="mr-2 mb-2" />
-        </div>
-        <div class="col-2">
-            <RadzenButton Click=@OpenOrder Text="Delete" ButtonStyle="ButtonStyle.Danger" class="mr-2 mb-2" />
-        </div>
-        <div class="col-2"></div>
-        <div class="col"></div>
-        <div class="col"></div>
-        <div class="col"></div>
+        <RadzenButton ButtonStyle="ButtonStyle.Primary" class="mb-2" Text="Add New User" Click=@CreateNewUser/>
     </div>
 
     <div class="row">
         <RadzenDataGrid AllowFiltering="true" AllowColumnResize="true" FilterMode="FilterMode.Advanced" PageSize="10" AllowPaging="true" AllowSorting="true" 
-        Data="@Users" TItem="IdentityUser" ColumnWidth="300px" LogicalFilterOperator="LogicalFilterOperator.Or" IsLoading="@IsLoading"
+        Data="@Users" TItem="IdentityUser" Count="@UserCount" LogicalFilterOperator="LogicalFilterOperator.Or" IsLoading="@IsLoading"
         SelectionMode="DataGridSelectionMode.Single" @bind-Value=@SelectedUser>
             <Columns>
                 <RadzenDataGridColumn TItem="IdentityUser" Property="Id" Filterable="false" Title="Id" Frozen="true" TextAlign="TextAlign.Center" />
                 <RadzenDataGridColumn TItem="IdentityUser" Property="UserName" Title="User Name" />
                 <RadzenDataGridColumn TItem="IdentityUser" Property="Email" Title="Email"/>
+                <RadzenDataGridColumn TItem="IdentityUser" Property="Id" Title="Control" Width="150px">
+                    <Template Context="data">
+                        <RadzenButton ButtonStyle="ButtonStyle.Info" Icon="edit" Click=@(() => EditUser(data.Id)) MouseEnter="@(args => EditTip(args, new TooltipOptions(){ Duration = 2000 }))" />
+                        <RadzenButton ButtonStyle="ButtonStyle.Warning" Icon="password" Click=@(() => ResetUserPassword(data.Id)) MouseEnter="@(args => PasswordTip(args, new TooltipOptions(){ Duration = 2000 }))" />
+                        <RadzenButton ButtonStyle="ButtonStyle.Danger" Icon="delete" Click=@(() => DeleteUser(data.Id)) MouseEnter="@(args => DeleteTip(args, new TooltipOptions(){ Duration = 2000 }))" />
+                    </Template>
+                </RadzenDataGridColumn>
             </Columns>
         </RadzenDataGrid>
     </div>
-    
 }
 
 @code {
     private bool IsLoading = true;
+    private int NotificationTime = 2000;
     private IEnumerable<IdentityUser> Users;
+        private int UserCount;
     private IList<IdentityUser> SelectedUser;
 
     protected override  async Task OnInitializedAsync()
     {
-        //await IdentityManager.CreateRoleAsync("Test Role 1");
-        //await IdentityManager.CreateRoleAsync("Test Role 2");
-        Users =  await Task.Run(()=>DbContext.Users);
-        IsLoading = false;
+        dialogService.OnOpen += Open;
+        dialogService.OnClose += Close;
+        await GetUsersAsync();
     }
 
-    public async Task OpenOrder()
+    public void EditTip(ElementReference elementReference, TooltipOptions options = null) => tooltipService.Open(elementReference, "Edit User", options);
+    public void PasswordTip(ElementReference elementReference, TooltipOptions options = null) => tooltipService.Open(elementReference, "Reset User Password", options);
+    public void DeleteTip(ElementReference elementReference, TooltipOptions options = null) => tooltipService.Open(elementReference, "Delete User", options);
+
+    protected async Task GetUsersAsync()
     {
-        if (SelectedUser == null) {
+        IsLoading = true;
+        Users = await DbContext.Users.ToListAsync();
+        UserCount = Users.Count();
+        IsLoading = false;
+        await InvokeAsync(() => StateHasChanged());
+    }
+
+    void Open(string title, Type type, Dictionary<string, object> parameters, DialogOptions options)
+    {
+        // Do Not Remove this method.
+    }
+
+    void Close(dynamic result)
+    {
+        // Do Not Remove this method.
+    }
+
+    public async Task CreateNewUser()
+    {
+        NotificationMessage message;
+        ReturnResult NewUser = await dialogService.OpenAsync<NewUserPopup>("Create New User",
+                new Dictionary<string, object>() {{"ds", dialogService}},
+                new DialogOptions() { Width = "425px", Height = "575px" });
+
+        if (null == NewUser || NewUser.Cancelled)
+        {
             return;
         }
-        await dialogService.OpenAsync<UserPopup>($"Edit User: {SelectedUser[0].UserName}",
-               new Dictionary<string, object>() { { "UserId", SelectedUser[0].Id } },
-               new DialogOptions() { Width = "700px", Height = "530px" });
+
+        if (NewUser.Success)
+            {
+                message = new NotificationMessage { 
+                    Style = "position: absolute; left: -1000px;", 
+                    Severity = NotificationSeverity.Success, 
+                    Summary = "User Created", 
+                    Detail = $"The new user was created.", 
+                    Duration = NotificationTime };
+                    ShowNotification(message);
+                    await GetUsersAsync();
+            }
+            else if(!NewUser.Success)
+            {
+                message = new NotificationMessage { 
+                    Style = "position: absolute; left: -1000px;", 
+                    Severity = NotificationSeverity.Error, 
+                    Summary = "Failed to Create", 
+                    Detail = $"Unable to create new user!", 
+                    Duration = NotificationTime };
+                    ShowNotification(message);
+            }
     }
+
+    public async Task EditUser(string id)
+    {
+        if (id == null) {
+            return;
+        }
+
+        NotificationMessage message;
+
+        ReturnResult UserUpdated = await dialogService.OpenAsync<EditUserPopup>("Edit User",
+               new Dictionary<string, object>() { {"ds", dialogService}, { "UserId", id }},
+               new DialogOptions() { Width = "700px", Height = "530px" });
+        if (null == UserUpdated || UserUpdated.Cancelled)
+        {
+            return;
+        } 
+        
+        if (UserUpdated.Success)
+            {
+                message = new NotificationMessage { 
+                    Style = "position: absolute; left: -1000px;", 
+                    Severity = NotificationSeverity.Success, 
+                    Summary = "Success", 
+                    Detail = $"The user was updated.", 
+                    Duration = NotificationTime };
+                    ShowNotification(message);
+                    await GetUsersAsync();
+            }
+            else if(!UserUpdated.Success)
+            {
+                message = new NotificationMessage { 
+                    Style = "position: absolute; left: -1000px;", 
+                    Severity = NotificationSeverity.Error, 
+                    Summary = "Failed", 
+                    Detail = $"Unable to update user!", 
+                    Duration = NotificationTime };
+                    ShowNotification(message);
+            }
+    }
+
+    public void ResetUserPassword(string id)
+    {
+
+    }
+
+    public async Task DeleteUser(string id)
+    {
+        NotificationMessage message;
+
+             var DialogResult = await dialogService.OpenAsync("Confirm Delete", ds =>
+        @<div>
+            <p Style="margin-bottom: 1rem">Are you sure you want to delete this user?</p>
+            <div class="row">
+                <div class="col-md-12">
+                    <RadzenButton Text="Delete" Click="() => ds.Close(true)" ButtonStyle="ButtonStyle.Danger" Style="margin-bottom: 10px; width: 150px" />
+                    <RadzenButton Text="Cancel" Click="() => ds.Close(false)" ButtonStyle="ButtonStyle.Secondary"  Style="margin-bottom: 10px; width: 150px"/>
+                </div>
+            </div>
+        </div>);
+
+        if (DialogResult)
+        {
+            bool result = await IdentityManager.DeleteUserAsync(id);
+            if (result)
+            {
+                message = new NotificationMessage { 
+                    Style = "position: absolute; left: -1000px;", 
+                    Severity = NotificationSeverity.Success, 
+                    Summary = "User Deleted", 
+                    Detail = $"The user {id} was deleted.", 
+                    Duration = NotificationTime };
+            }
+            else
+            {
+                message = new NotificationMessage { 
+                    Style = "position: absolute; left: -1000px;", 
+                    Severity = NotificationSeverity.Error, 
+                    Summary = "Failed Delete", 
+                    Detail = $"Unable to delete user {id}!", 
+                    Duration = NotificationTime };
+            }
+
+            ShowNotification(message);
+            await GetUsersAsync();
+        }
+
+    }
+    public void ShowNotification(NotificationMessage message)
+    {
+        NotificationService.Notify(message);
+    }
+
+    public void Dispose()
+    {
+        // The DialogService is a singleton so it is advisable to unsubscribe.
+        dialogService.OnOpen -= Open;
+        dialogService.OnClose -= Close;
+    }
+
 }

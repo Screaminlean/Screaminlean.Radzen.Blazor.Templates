@@ -1,0 +1,81 @@
+@page "/identitymanager/newrolepopup"
+
+@using Microsoft.EntityFrameworkCore;
+@using Microsoft.AspNetCore.Identity;
+@using Radzen.Blazor.Server.IdMan.Data;
+
+@inject Radzen.Blazor.Server.IdMan.Data.Services.IdentityManagerService IdentityManager;
+
+<div class="row">
+    <div class="row">
+        <div class="col">
+            <RadzenTemplateForm TItem="Model" Data=@model Submit=@OnSubmit InvalidSubmit=@OnInvalidSubmit>
+                <RadzenFieldset Text="Role information">
+                    <div class="row" style="margin-bottom: 48px">
+                        <div class="col align-right">
+                            <RadzenLabel Text="Role Name" />
+                        </div>
+                        <div class="col">
+                            <RadzenTextBox style="display: block" Name="RoleName" @bind-Value=@model.RoleName />
+                            <RadzenRequiredValidator Component="RoleName" Text="Role name is required" Popup=@popup Style="position: absolute"/>
+                        </div>
+                    </div>
+
+                        <div class="row">
+                            <div class="col-md-12">
+                                <RadzenButton ButtonType="ButtonType.Submit" Text="Create" ButtonStyle="ButtonStyle.Primary" Style="margin-bottom: 10px; width: 150px" />
+                                <RadzenButton Text="Cancel" Click=@Cancel ButtonStyle="ButtonStyle.Danger"  Style="margin-bottom: 10px; width: 150px"/>
+                            </div>
+                        </div>
+                </RadzenFieldset>
+            </RadzenTemplateForm>
+        </div>
+    </div>
+</div>
+
+@code {
+    
+    [Parameter] public DialogService ds { get; set; }
+
+    public class Model
+    {
+        public string RoleName { get; set; }
+    }
+
+    public Model model;
+    public ReturnResult result;
+    private bool popup = false;
+    protected override void OnInitialized()
+    {
+        model = new();
+        result = new ReturnResult {Cancelled = false};
+    }
+
+    public void Cancel()
+    {
+        result.Success = false;
+        result.Cancelled = true;
+        ds.Close(result);
+    }
+
+
+    public async Task OnSubmit()
+    {
+        bool RoleCreated = await IdentityManager.CreateRoleAsync(model.RoleName);
+        if (RoleCreated)
+        {
+            result.Success = true;
+            ds.Close(result);
+        }
+        else {
+            result.Success = false;
+            ds.Close(result);
+        }
+    }
+
+    void OnInvalidSubmit(FormInvalidSubmitEventArgs args)
+    {
+        
+    }
+
+}

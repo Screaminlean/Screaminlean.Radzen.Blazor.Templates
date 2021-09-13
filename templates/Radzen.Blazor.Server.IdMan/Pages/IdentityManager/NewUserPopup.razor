@@ -1,0 +1,116 @@
+@page "/identitymanager/newuserpopup"
+
+@using Microsoft.EntityFrameworkCore;
+@using Microsoft.AspNetCore.Identity;
+@using Radzen.Blazor.Server.IdMan.Data;
+
+@inject Radzen.Blazor.Server.IdMan.Data.Services.IdentityManagerService IdentityManager;
+
+<div class="row">
+    <div class="row">
+        <div class="col align-center">
+            <RadzenTemplateForm TItem="Model" Data=@model Submit=@OnSubmit InvalidSubmit=@OnInvalidSubmit>
+                <RadzenFieldset Text="User information" class="align-center">
+                    <div class="row" style="margin-bottom: 48px">
+                        <div class="col align-right">
+                            <RadzenLabel Text="Username" />
+                        </div>
+                        <div class="col align-left">
+                            <RadzenTextBox style="display: block" Name="UserName" @bind-Value=@model.UserName />
+                            <RadzenRequiredValidator Component="UserName" Text="Username is required" Popup=@popup Style="position: absolute"/>
+                        </div>
+                    </div>
+
+                    <div class="row" style="margin-bottom: 48px">
+                        <div class="col align-right">
+                            <RadzenLabel Text="Email" />
+                        </div>
+                        <div class="col align-left">
+                            <RadzenTextBox style="display: block" Name="Email" @bind-Value=@model.Email />
+                            <RadzenRequiredValidator Component="Email" Text="Email is required" Popup=@popup Style="position: absolute"/>
+                            <RadzenEmailValidator Component="Email" Text="Provide a valid email address" Popup=@popup Style="position: absolute"/>
+                        </div>
+                    </div>
+
+                     <div class="row" style="margin-bottom: 48px">
+                            <div class="col align-right">
+                                <RadzenLabel Text="Password" />
+                            </div>
+                            <div class="col align-left">
+                                <RadzenPassword style="display: block" Name="Password" @bind-Value=@model.PasswordHash />
+                                <RadzenRequiredValidator Component="Password" Text="Enter password" Popup="@popup" Style="position: absolute" />
+                            </div>
+                        </div>
+
+                        <div class="row" style="margin-bottom: 48px">
+                            <div class="col align-right">
+                                <RadzenLabel Text="Repeat Password" />
+                            </div>
+                            <div class="col align-left">
+                                <RadzenPassword style="display: block" Name="RepeatPassword" @bind-Value=@model.PasswordHash2 />
+                                <RadzenRequiredValidator Component="RepeatPassword" Text="Repeat your password" Popup=@popup Style="position: absolute" />
+                                <RadzenCompareValidator Visible=@(!string.IsNullOrEmpty(model.PasswordHash2)) Value=@model.PasswordHash Component="RepeatPassword" Text="Passwords do not match!" Popup=@popup Style="position: absolute" />
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-12 align-right">
+                                <RadzenButton ButtonType="ButtonType.Submit" Text="Create" ButtonStyle="ButtonStyle.Primary" Style="margin-bottom: 10px; width: 150px" />
+                                <RadzenButton Text="Cancel" Click=@Cancel ButtonStyle="ButtonStyle.Danger"  Style="margin-bottom: 10px; width: 150px"/>
+                            </div>
+                        </div>
+                </RadzenFieldset>
+            </RadzenTemplateForm>
+        </div>
+    </div>
+</div>
+
+@code {
+    
+    [Parameter] public DialogService ds { get; set; }
+    public ReturnResult result;
+
+    public class Model
+    {
+        public string UserName { get; set; }
+        public string Email { get; set; }
+        public string PasswordHash { get; set; }
+        public string PasswordHash2 { get; set; }
+    }
+
+    public Model model;
+    private bool popup = false;
+    protected override void OnInitialized()
+    {
+        model = new();
+        result = new ReturnResult{Cancelled=false};
+
+    }
+
+    public async Task OnSubmit()
+    {
+        bool UserCreated = await IdentityManager.CreateNewUserAsync(model.UserName, model.Email, model.PasswordHash);
+        if (UserCreated)
+        {
+            result.Success = true;
+            ds.Close(result);
+        }
+        else {
+            result.Success = false;
+            ds.Close(false);
+        }
+    }
+
+    void OnInvalidSubmit(FormInvalidSubmitEventArgs args)
+    {
+        
+    }
+
+    public void Cancel()
+    {
+        result.Success = false;
+        result.Cancelled = true;
+        ds.Close(result);
+    }
+
+}
